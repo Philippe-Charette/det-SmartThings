@@ -1,5 +1,5 @@
 /**
- *  Honeywell Z-Wave Plus Dimmer Switch
+ *  Jasco Z-Wave Plus Dimmer Switch
  *
  *  Copyright 2018 Bradlee Sutton
  *
@@ -69,8 +69,9 @@ metadata {
 		command "setAllSteps"
 		command "setAllDelay"
 		command "setMinimumDim"
-        
-		fingerprint mfr:"0039", prod:"4944", model:"3038", ver:"5.29", deviceJoinName:"Honeywell Z-Wave Plus Wall Dimmer"
+		
+		fingerprint mfr:"0039", prod:"4944", model:"3038", ver:"5.29", deviceJoinName:"Honeywell Z-Wave Plus Dimmer Switch"
+		fingerprint mfr:"0063", prod:"4944", model:"3038", ver:"5.29", deviceJoinName:"GE Z-Wave Plus Dimmer Switch"
 	}
 
 	simulator {
