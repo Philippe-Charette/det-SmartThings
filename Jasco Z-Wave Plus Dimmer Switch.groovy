@@ -1,5 +1,5 @@
 /**
- *  Jasco Z-Wave Plus Dimmer Switch
+ *  Jasco/GE/Honeywell Z-Wave Plus Dimmer Switch for firmware 5.29+
  *
  *  Copyright 2018 Bradlee Sutton
  *
@@ -35,7 +35,7 @@
  *
  */
 metadata {
-	definition (name: "Honeywell Z-Wave Plus Dimmer Switch", namespace: "det-bradlee", author: "Bradlee Sutton") {
+	definition (name: "Jasco Z-Wave Plus Dimmer Switch", namespace: "bradlee-s", author: "Bradlee Sutton") {
 		capability "Actuator"
 		capability "Button"
 		capability "Configuration"
@@ -48,28 +48,31 @@ metadata {
 		capability "Switch Level"
 
 		attribute "inverted", "enum", ["inverted", "not inverted"]
-		attribute "zwaveSteps", "number"
-		attribute "zwaveDelay", "number"
+		attribute "switchMode", "enum", ["modeDimmer", "modeSwitch"]
+		attribute "minimumDim", "number"
 		attribute "manualSteps", "number"
 		attribute "manualDelay", "number"
+		attribute "zwaveSteps", "number"
+		attribute "zwaveDelay", "number"
 		attribute "allSteps", "number"
 		attribute "allDelay", "number"
-		attribute "minimumDim", "number"
         
 		command "doubleUp"
 		command "doubleDown"
 		command "inverted"
 		command "notInverted"
+		command "modeDimmer"
+		command "modeSwitch"
+		command "setMinimumDim"
 		command "levelUp"
 		command "levelDown"
-		command "setZwaveSteps"
-		command "setZwaveDelay"
 		command "setManualSteps"
 		command "setManualDelay"
+		command "setZwaveSteps"
+		command "setZwaveDelay"
 		command "setAllSteps"
 		command "setAllDelay"
-		command "setMinimumDim"
-		
+        
 		fingerprint mfr:"0039", prod:"4944", model:"3038", ver:"5.29", deviceJoinName:"Honeywell Z-Wave Plus Dimmer Switch"
 		fingerprint mfr:"0063", prod:"4944", model:"3038", ver:"5.29", deviceJoinName:"GE Z-Wave Plus Dimmer Switch"
 	}
@@ -134,12 +137,16 @@ metadata {
 			}
 		}
         
-        standardTile("doubleUp", "device.button", width: 3, height: 2, decoration: "flat") {
+        standardTile("doubleUp", "device.button", width: 2, height: 2, decoration: "flat") {
 			state "default", label: "Tap ▲▲", backgroundColor: "#ffffff", action: "doubleUp", icon: "https://raw.githubusercontent.com/nuttytree/Nutty-SmartThings/master/devicetypes/nuttytree/SwitchOnIcon.png"
 		}     
  
-        standardTile("doubleDown", "device.button", width: 3, height: 2, decoration: "flat") {
+        standardTile("doubleDown", "device.button", width: 2, height: 2, decoration: "flat") {
 			state "default", label: "Tap ▼▼", backgroundColor: "#ffffff", action: "doubleDown", icon: "https://raw.githubusercontent.com/nuttytree/Nutty-SmartThings/master/devicetypes/nuttytree/SwitchOffIcon.png"
+		}
+
+		standardTile("refresh", "device.switch", width: 2, height: 2, inactiveLabel: false, decoration: "flat") {
+			state "default", label:'', action:"refresh.refresh", icon:"st.secondary.refresh"
 		} 
 
 		standardTile("indicator", "device.indicatorStatus", width: 2, height: 2, inactiveLabel: false, decoration: "flat") {
@@ -152,12 +159,12 @@ metadata {
 			state "not inverted", label: "Not Inverted", action:"inverted", icon:"https://raw.githubusercontent.com/nuttytree/Nutty-SmartThings/master/devicetypes/nuttytree/SwitchNotInverted.png", backgroundColor: "#ffffff"
 			state "inverted", label: "Inverted", action:"notInverted", icon:"https://raw.githubusercontent.com/nuttytree/Nutty-SmartThings/master/devicetypes/nuttytree/SwitchInverted.png", backgroundColor: "#ffffff"
 		}
-
-		standardTile("refresh", "device.switch", width: 2, height: 2, inactiveLabel: false, decoration: "flat") {
-			state "default", label:'', action:"refresh.refresh", icon:"st.secondary.refresh"
+		        
+		standardTile("switchMode", "device.switchMode", width: 2, height: 2, inactiveLabel: false, decoration: "flat") {
+			state "modeDimmer", label: "Mode: Full Range Dimmer", action:"modeSwitch", backgroundColor: "#ffffff"
+			state "modeSwitch", label: "Mode: Simple Switch", action:"modeDimmer", backgroundColor: "#ffffff"
 		}
-
-		
+				
 		standardTile("minimumDimLabel", "device.minimumDim",  width: 2, height: 1, inactiveLabel: false) {
         	state "default", label:'Minimum Dim Level: ${currentValue}'
         }
@@ -208,11 +215,11 @@ metadata {
 		}
 
 		main "switch"
-        details(["switch", "doubleUp", "doubleDown",
-        		 "indicator", "inverted", "refresh",
+        details(["switch", "doubleUp", "doubleDown", "refresh",
+        		 "indicator", "inverted", "switchMode",
                  "minimumDimLabel", "minimumDim",
-                 "zwaveStepsLabel", "zwaveSteps", "zwaveDelayLabel", "zwaveDelay",
                  "manualStepsLabel", "manualSteps", "manualDelayLabel", "manualDelay",
+                 "zwaveStepsLabel", "zwaveSteps", "zwaveDelayLabel", "zwaveDelay",
                  "allStepsLabel", "allSteps", "allDelayLabel", "allDelay"])
 	}
 }
@@ -326,6 +333,10 @@ def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport 
             name = "allDelay"
             value = reportValue
             break
+        case 16:
+            name = "switchMode"
+            value = reportValue == 1 ? "true" : "false"
+            break
         case 20:
             name = "minimumDim"
             value = reportValue
@@ -371,6 +382,7 @@ def configure() {
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 10).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 11).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 12).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 16).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 20).format()
     
     // Add the hub to association group 3 to get double-tap notifications
@@ -438,22 +450,20 @@ def doubleDown() {
 	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true, type: "digital")
 }
 
+def modeDimmer() {
+	sendEvent(name: "switchMode", value: "modeDimmer", display: false)
+	zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 16, size: 1).format()
+}
+
+def modeSwitch() {
+	sendEvent(name: "switchMode", value: "modeSwitch", display: false)
+	zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 16, size: 1).format()
+}
+
 def setMinimumDim(minDim) {
 	minDim = Math.max(Math.min(minDim, 99), 1)
 	sendEvent(name: "minimumDim", value: minDim, displayed: false)	
 	zwave.configurationV2.configurationSet(scaledConfigurationValue: minDim, parameterNumber: 20, size: 1).format()
-}
-
-def setZwaveSteps(steps) {
-	steps = Math.max(Math.min(steps, 99), 1)
-	sendEvent(name: "zwaveSteps", value: steps, displayed: false)	
-	zwave.configurationV2.configurationSet(scaledConfigurationValue: steps, parameterNumber: 7, size: 1).format()
-}
-
-def setZwaveDelay(delay) {
-	delay = Math.max(Math.min(delay, 255), 1)
-	sendEvent(name: "zwaveDelay", value: delay, displayed: false)
-	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: delay, parameterNumber: 8, size: 2).format()))
 }
 
 def setManualSteps(steps) {
@@ -466,6 +476,18 @@ def setManualDelay(delay) {
 	delay = Math.max(Math.min(delay, 255), 1)
 	sendEvent(name: "manualDelay", value: delay, displayed: false)
 	zwave.configurationV2.configurationSet(scaledConfigurationValue: delay, parameterNumber: 10, size: 2).format()
+}
+
+def setZwaveSteps(steps) {
+	steps = Math.max(Math.min(steps, 99), 1)
+	sendEvent(name: "zwaveSteps", value: steps, displayed: false)	
+	zwave.configurationV2.configurationSet(scaledConfigurationValue: steps, parameterNumber: 7, size: 1).format()
+}
+
+def setZwaveDelay(delay) {
+	delay = Math.max(Math.min(delay, 255), 1)
+	sendEvent(name: "zwaveDelay", value: delay, displayed: false)
+	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: delay, parameterNumber: 8, size: 2).format()))
 }
 
 def setAllSteps(steps) {
@@ -504,6 +526,7 @@ def refresh() {
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 10).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 11).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 12).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 16).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 20).format()
     cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
 	if (getDataValue("MSR") == null) {
