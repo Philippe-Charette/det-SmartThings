@@ -1,7 +1,7 @@
 /**
  *  Orvibo T10S7ZW 7 Button Scene Controller
  *
- *	Author: Brad Sutton based
+ *	Author: Brad Sutton
  *	Date Created: 2018-01-11
  *  Last Updated: 2019-11-27
  *
