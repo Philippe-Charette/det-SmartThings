@@ -1,9 +1,9 @@
 /**
  *  Orvibo T10S7ZW 7 Button Scene Controller
  *
- *	Author: Brad Sutton
+ *	Author: Brad Sutton, Philippe Charette
  *	Date Created: 2018-01-11
- * 	Last Updated: 2019-11-27
+ * 	Last Updated: 2020-08-12
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -27,7 +27,6 @@
 	* 0000	Basic Cluster
 	* 0005	Scenes Cluster
 	* 0017	AlphaSecureKeyEstablishment Cluster
-
 	* Command reference
 	* All buttons support pressed / held / released
 	* 1 pressed	 'catchall: 0104 0017 01 0A 0100 00 4348 01 00 0000 08 01 010000'
@@ -44,10 +43,10 @@
 metadata {
 	definition (name: "Orvibo 7 Button Scene Controller (T10S7ZW)", namespace: "det-bradlee", author: "Bradlee Sutton") {
 		capability "Actuator"
-		capability "Button"
+		capability "PushableButton"
 		capability "Configuration"
-        capability "Execute"
-		capability "Holdable Button"
+		capability "HoldableButton"
+		capability "ReleasableButton"
 		capability "Indicator"
 		capability "Polling"
 		capability "Refresh"
@@ -165,8 +164,9 @@ def parse(String description) {
 	
 	//ignoring all other events. button action event.data will look like [(1-7), (0), (0,2,3)]
 	if(dat[0] != null && dat[1] != null && dat[2] != null && dat[0] <= 7 && dat[1] == 0 && dat[2] <= 3) {
-    	def btnNum = 1
+    	def btnNum = dat[0]
 		
+        /*
 		//reverse order of buttons so large top button is #1
 		if(dat[0] == 7) {btnNum = 1}
 		else if(dat[0] == 6) {btnNum = 2}
@@ -175,6 +175,7 @@ def parse(String description) {
 		else if(dat[0] == 3) {btnNum = 5}
 		else if(dat[0] == 2) {btnNum = 6}
 		else if(dat[0] == 1) {btnNum = 7}
+        */
 		
         def btnAction = "";
         if(dat[2] == 0) {
@@ -269,11 +270,8 @@ def configure() {
 0x40 Enhanced Add Scene		:
 0x41 Enhanced View Scene	: optional - not supported
 0x42 Copy Scene				:
-
-
     //log.debug "Configure Reporting on Scene Count"
     //cluster, attribute, datatype, mintime, maxtime, configurable change
-
     fireCommands(zigbee.onOffConfig() + zigbee.onOffRefresh() + zigbee.configureReporting(0x0005, 0x0000, 0x08, 0, 600, null) + "delay 500")
     zigbee.onOffConfig()
     zigbee.onOffRefresh()
@@ -289,7 +287,7 @@ def enrollResponse() {
     ]
 }
 
-
+/*
 private fireCommands(List commands) {
 	if (commands != null && commands.size() > 0) {
 		//log.trace("Executing commands-- state:" + state + " commands:" + commands)
@@ -299,6 +297,7 @@ private fireCommands(List commands) {
 		}
 	}
 }
+*/
 
 def buttonPress1() { buttonPressed(1, "Indicator1") }
 def buttonPress2() { buttonPressed(2, "Indicator2") }
@@ -314,7 +313,8 @@ def buttonPressed(btnNumber, obj) {
     def currState = state[obj]
     log.debug "Button$btnNumber Pressed - Current State: $currState"
     
-    sendEvent(name: "button", value: "pushed", data: [buttonNumber: btnNumber], descriptionText: "Button$btnNumber pressed on $device.displayName", isStateChange: true, type: "digital")
+    //sendEvent(name: "button", value: "pushed", data: [buttonNumber: btnNumber], descriptionText: "Button$btnNumber pressed on $device.displayName", isStateChange: true, type: "digital")
+    sendEvent(name: "pushed", value: btnNumber, isStateChange: true)
 }
 
 def buttonHeld(btnNumber, obj) {
@@ -324,7 +324,8 @@ def buttonHeld(btnNumber, obj) {
     def currState = state[obj]
     log.debug "Button$btnNumber Held - Current State: $currState"
 
-	sendEvent(name: "button", value: "held", data: [buttonNumber: btnNumber], descriptionText: "Button$btnNumber held on $device.displayName", isStateChange: true, type: "digital")
+	//sendEvent(name: "button", value: "held", data: [buttonNumber: btnNumber], descriptionText: "Button$btnNumber held on $device.displayName", isStateChange: true, type: "digital")
+    sendEvent(name: "held", value: btnNumber, isStateChange: true)
 }
 def buttonReleased(btnNumber, obj) {
 	//Toggle value of Indicator
@@ -332,4 +333,6 @@ def buttonReleased(btnNumber, obj) {
 	else { state[obj] = "OFF" }
     def currState = state[obj]
     log.debug "Button$btnNumber Released - Current State: $currState"
+    
+    sendEvent(name: "released", value: btnNumber, isStateChange: true)
 }
